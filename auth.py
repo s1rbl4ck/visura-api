@@ -95,7 +95,7 @@ async def login_spid(page: Page):
     await page.get_by_role("button", name="Entra con SPID").click()
 
     print(f"[LOGIN][{method}] Clicking 'Sielte ID'...")
-    await page.get_by_role("link", name="Sielte ID").click()
+    await page.locator('a[href*="sielte"]').click()
 
     print(f"[LOGIN][{method}] Entering username...")
     await page.get_by_role("textbox", name="Codice Fiscale / Partita IVA").fill(ade_username)

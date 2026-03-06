@@ -12,8 +12,9 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from contextlib import asynccontextmanager
-from utils import login, run_visura, logout, extract_all_sezioni, run_visura_immobile
+from utils import run_visura, logout, extract_all_sezioni, run_visura_immobile
 from pydantic import BaseModel, Field, validator
+from auth import login
 
 # Configurazione logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

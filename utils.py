@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import time
+from playwright.async_api import Page
 
 def parse_table(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -13,76 +14,6 @@ def parse_table(html):
                 cells.append("")
             rows.append(dict(zip(headers, cells)))
     return rows
-
-from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
-import os
-import re
-
-async def login(page: Page):
-    ade_username = os.getenv("ADE_USERNAME")
-    ade_password = os.getenv("ADE_PASSWORD")
-    
-    if not ade_username or not ade_password:
-        raise ValueError("ADE_USERNAME and ADE_PASSWORD environment variables must be set")
-    
-    print("[LOGIN] Navigo alla pagina di login...")
-    await page.goto("https://iampe.agenziaentrate.gov.it/sam/UI/Login?realm=/agenziaentrate")
-    print("[LOGIN] Clicco 'Entra con SPID'...")
-    await page.get_by_role("button", name="Entra con SPID").click()
-    print("[LOGIN] Clicco 'Sielte ID'...")
-    await page.get_by_role("link", name="Sielte ID").click()
-    print("[LOGIN] Inserisco username...")
-    await page.get_by_role("textbox", name="Codice Fiscale / Partita IVA").press("CapsLock")
-    await page.get_by_role("textbox", name="Codice Fiscale / Partita IVA").fill(ade_username)
-    print("[LOGIN] Inserisco password...")
-    await page.get_by_role("textbox", name="Password").click()
-    await page.get_by_role("textbox", name="Password").fill(ade_password)
-    print("[LOGIN] Clicco 'Prosegui'...")
-    await page.get_by_role("button", name="Prosegui").click()
-    print("[LOGIN] Cerco link notifica (può non esserci)...")
-    try:
-        await page.get_by_role("link", name="Utilizza il le notifiche Ricevi una notifica sull'app MySielteID").click(timeout=4000)
-        print("[LOGIN] Cliccato link notifica (testo completo).")
-    except PlaywrightTimeoutError:
-        print("[LOGIN] Link notifica con testo completo non trovato, provo fallback...")
-        # Fallback: cerca <a> con alt="Utilizza il le notifiche" e <p> con testo 'Ricevi una notifica sull'app MySielteID'
-        try:
-            await page.locator('a.link-sso:has(img[alt="Utilizza il le notifiche"]):has(p:text("Ricevi una notifica sull\'app MySielteID"))').click(timeout=4000)
-            print("[LOGIN] Cliccato link notifica (fallback DOM selector).")
-        except PlaywrightTimeoutError:
-            print("[LOGIN] Nessun link notifica trovato, stampo contenuto pagina per debug:")
-            content = await page.content()
-            print("[LOGIN][DEBUG] HTML pagina:\n" + content)
-            print("[LOGIN] Continuo comunque.")
-    print("[LOGIN] Clicco 'Autorizza'...")
-    await page.get_by_role("button", name="Autorizza").click()
-    print("[LOGIN] Cerco servizio SISTER...")
-    await page.get_by_role("textbox", name="Cerca il servizio").click()
-    await page.get_by_role("textbox", name="Cerca il servizio").fill("SISTER")
-    await page.get_by_role("textbox", name="Cerca il servizio").press("Enter")
-    print("[LOGIN] Clicco 'Vai al servizio'...")
-    await page.get_by_role("link", name="Vai al servizio").first.click()
-
-    print("[LOGIN] Attendo caricamento pagina...")
-    await page.wait_for_load_state("networkidle")
-    print("[LOGIN] Controllo blocco sessione...")
-    content = await page.content()
-    url = page.url
-    if (
-        "Utente gia' in sessione" in content
-        or "error_locked.jsp" in url
-    ):
-        print("[LOGIN][ERRORE] Utente già in sessione su un'altra postazione!")
-        raise Exception("Utente già in sessione su un'altra postazione")
-
-    print("[LOGIN] Clicco 'Conferma'...")
-    await page.get_by_role("button", name="Conferma").click()
-    print("[LOGIN] Clicco 'Consultazioni e Certificazioni'...")
-    await page.get_by_role("link", name="Consultazioni e Certificazioni").click()
-    print("[LOGIN] Clicco 'Visure catastali'...")
-    await page.get_by_role("link", name="Visure catastali").click()
-    print("[LOGIN] Clicco 'Conferma Lettura'...")
-    await page.get_by_role("link", name="Conferma Lettura").click()
 
 async def find_best_option_match(page, selector, search_text):
     """Trova l'opzione che meglio corrisponde al testo cercato"""
